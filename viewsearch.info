@@ -1,0 +1,7 @@
+; $Id$
+name = "Custom Search module"
+description = "Overrides core search w/views."
+core = 6.x
+package = Other
+dependencies[] = views
+dependencies[] = search

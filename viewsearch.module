@@ -1,0 +1,110 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * This module will attempt to replace the core search with views integrated search.
+ */
+
+/**
+ * Implementation of hook_menu_alter.
+ *
+ * We want to remove "search" from the menu router to keep the search functionality
+ * without having the search interface.
+ */
+function viewsearch_menu_alter(&$items) {
+  // Replace search callbacks
+  if (module_exists('search')) {
+    $unset = array('search', 'search/node/%menu_tail', 'search/user/%menu_tail');
+    foreach ($unset as $path) {
+      if (!empty($items[$path])  && $items[$path]['module'] == 'search') {
+        unset($items[$path]);
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_preprocess_page()
+ *
+ * This function replaces $search_box in the page template with our new form
+ */
+function viewsearch_preprocess_page(&$variables) {
+  $variables['search_box'] = drupal_get_form('viewsearch_search_form');
+}
+
+/**
+ * Implementation of hook_form()
+ *
+ * Instead of the normal Search form, we'll implement our own.
+ * This is used for the block. The "search" page form will be replaced
+ * by the empty view with the exposed "Search: Term" filter.
+ */
+function viewsearch_search_form($form_state) {
+  if (arg(0) == 'search' && isset($_GET['keys'])) {
+    $default = urldecode($_GET['keys']);
+  }
+  $form = array();
+  $form['search'] = array(
+    '#title' => t('Search this site'),
+    '#type' => 'textfield',
+    '#size' => 15,
+    '#required' => false,
+    '#default_value' => !empty($default) ? $default : '',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Go'),
+    '#submit' => array('viewsearch_search_form_submit'),
+  );
+  $form['#prefix'] = '<div id="search" class="container-inline">';
+  $form['#suffix'] = '</div>';
+  return $form;
+}
+
+/**
+ * Implementation of hook_form_submit()
+ *
+ * Our custom Search form submit handler to turn the search term into 
+ * exposed filter style "keys" as an querystring array.
+ */
+function viewsearch_search_form_submit($form, &$form_state) {
+  $search = $form_state['values']['search'];
+  drupal_goto('search', array('keys' => $search));
+}
+
+/**
+ * Implementation of hook_block()
+ *
+ * This block will replace the $search page template variable.
+ * So we turn off the search box option in the theme settings.
+ */
+function viewsearch_block($op = 'list', $delta = 0) {
+  switch ($op) {
+    case 'list':
+      $blocks = array(
+        'search' => array(
+          'info' => t('View Search form'),
+        ),
+      );
+      return $blocks;
+    case 'view':
+      if (user_access('access content') && user_access('search content')) {
+        return array('subject' => '', 'content' => drupal_get_form('viewsearch_search_form'));
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_views_api()
+ * 
+ * Works to inform Views module of the version and types of views we're introducing
+ */
+function viewsearch_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'viewsearch'),
+    //'path' => drupal_get_path('module', 'viewsearch') . '/includes',
+    );
+}
