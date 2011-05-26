@@ -57,8 +57,8 @@ function viewsearch_search_form($form_state) {
     '#value' => t('Go'),
     '#submit' => array('viewsearch_search_form_submit'),
   );
-  $form['#prefix'] = '<div id="search" class="container-inline">';
-  $form['#suffix'] = '</div>';
+  $form['#prefix'] = '<div id="search-form" class="container-inline">';
+  $form['#suffix'] = '<p>' . l('Keyword search', 'search') . '</p></div>';
   return $form;
 }
 
